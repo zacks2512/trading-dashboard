@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Trading Journal Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e26;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text:#e8eaf0;--text2:#8891a4;--text3:#5a6070;--green:#2ecc71;--gdim:rgba(46,204,113,.12);--red:#e74c3c;--rdim:rgba(231,76,60,.12);--blue:#3498db;--bdim:rgba(52,152,219,.12);--amber:#f39c12;--r:8px;--f:'IBM Plex Sans',sans-serif;--m:'IBM Plex Mono',monospace;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--f);font-size:14px;}
+.hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:13px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+.logo{font-family:var(--m);font-size:13px;font-weight:500;color:var(--green);}
+.logo span{color:var(--text2);}
+.badge{font-size:11px;color:var(--text3);font-family:var(--m);margin-right:14px;}
+.btn{background:transparent;border:1px solid var(--border2);border-radius:var(--r);padding:6px 14px;color:var(--text);font-family:var(--f);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn:hover{background:var(--bg3);border-color:var(--blue);color:var(--blue);}
+.btn.p{border-color:var(--green);color:var(--green);}
+.btn.p:hover{background:var(--gdim);}
+.ibar{background:var(--bg2);border-bottom:1px solid var(--border);padding:9px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ibar label{font-size:12px;color:var(--text2);white-space:nowrap;}
+.ibar input[type=text]{flex:1;min-width:240px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--r);padding:6px 10px;color:var(--text);font-family:var(--m);font-size:12px;outline:none;}
+.ibar input[type=text]:focus{border-color:var(--blue);}
+#jf{display:none;}
+.tabs{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 24px;display:flex;}
+.tab{padding:11px 18px;font-size:13px;color:var(--text2);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+.page{display:none;padding:24px;max-width:1200px;margin:0 auto;}
+.page.active{display:block;}
+.empty{text-align:center;padding:48px;color:var(--text3);font-family:var(--m);font-size:13px;line-height:2;}
+.mgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:20px;}
+.mc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;}
+.ml{font-size:11px;color:var(--text3);margin-bottom:4px;font-family:var(--m);text-transform:uppercase;letter-spacing:.5px;}
+.mv{font-size:21px;font-weight:500;font-family:var(--m);}
+.mv.pos{color:var(--green);}.mv.neg{color:var(--red);}
+.cgrid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.cc{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+.cc.wide{grid-column:span 2;}
+.ct{font-size:11px;color:var(--text3);font-family:var(--m);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;}
+.hmwrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:20px;overflow-x:auto;}
+.hmtitle{font-size:11px;color:var(--text3);font-family:var(--m);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.hmleg{display:flex;gap:12px;font-size:11px;color:var(--text3);align-items:center;}
+.hmsw{width:10px;height:10px;border-radius:2px;display:inline-block;margin-left:4px;vertical-align:middle;}
+table.hm{border-collapse:separate;border-spacing:3px;}
+table.hm th{font-size:10px;font-weight:400;color:var(--text3);padding:4px 6px;text-align:center;white-space:nowrap;}
+table.hm th.rl{text-align:right;min-width:110px;}
+table.hm td.rl{font-size:12px;color:var(--text2);padding:4px 8px;white-space:nowrap;text-align:right;}
+table.hm td.cell{width:82px;height:46px;border-radius:5px;text-align:center;vertical-align:middle;font-family:var(--m);}
+table.hm td.emp{background:var(--bg3);border:1px solid var(--border);}
+.ca{font-size:12px;font-weight:500;}.cn{font-size:9px;opacity:.65;margin-top:1px;}
+.igrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;}
+.ins{padding:10px 14px;border-radius:var(--r);font-size:12px;line-height:1.5;display:flex;gap:8px;}
+.ins.pos{background:var(--gdim);border-left:2px solid var(--green);}
+.ins.neg{background:var(--rdim);border-left:2px solid var(--red);}
+.ins.neu{background:var(--bdim);border-left:2px solid var(--blue);}
+.efilt{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.eb{background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:3px 10px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .12s;}
+.eb:hover,.eb.active{background:var(--bdim);border-color:var(--blue);color:var(--blue);}
+.ttbl{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:20px;}
+.thd{display:grid;grid-template-columns:2fr 1.4fr 1.4fr 70px 80px 66px;font-size:11px;color:var(--text3);padding:8px 14px;background:var(--bg3);border-bottom:1px solid var(--border);font-family:var(--m);}
+.tbdy{max-height:360px;overflow-y:auto;}
+.trow{display:grid;grid-template-columns:2fr 1.4fr 1.4fr 70px 80px 66px;padding:8px 14px;border-bottom:1px solid var(--border);align-items:center;font-size:11px;transition:background .1s;}
+.trow:hover{background:var(--bg3);}
+.tn{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ts{font-size:10px;color:var(--text3);margin-top:1px;}
+.et{display:inline-block;font-size:9px;padding:1px 5px;border-radius:10px;margin:1px;}
+.et.gd{background:rgba(46,204,113,.15);color:#27ae60;}
+.et.bd{background:rgba(231,76,60,.15);color:#c0392b;}
+.et.nu{background:rgba(52,152,219,.12);color:#2980b9;}
+.pp{color:var(--green);font-family:var(--m);font-weight:500;}
+.np{color:var(--red);font-family:var(--m);font-weight:500;}
+.stt{font-size:11px;color:var(--text3);font-family:var(--m);text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;}
+.sbox{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;max-width:640px;}
+.cgr{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.cgr label{font-size:11px;color:var(--text3);display:block;margin-bottom:3px;}
+.cgr input{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--text);font-family:var(--m);font-size:11px;outline:none;}
+.steps{font-size:12px;color:var(--text3);padding-right:18px;line-height:2.3;margin:8px 0;}
+.hint{background:var(--bg3);border-radius:var(--r);padding:10px 12px;font-family:var(--m);font-size:11px;color:var(--text3);word-break:break-all;margin-top:8px;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div style="display:flex;align-items:center">
+    <div class="logo">TRADING<span>/</span>JOURNAL</div>
+    <div class="badge" id="badge">— טרם נטענו נתונים</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn" onclick="document.getElementById('jf').click()">📂 טען קובץ</button>
+    <input type="file" id="jf" accept=".json,.csv" onchange="loadFile(event)">
+    <button class="btn p" onclick="exportJSON()">⬇ ייצוא JSON</button>
+  </div>
+</div>
+<div class="ibar">
+  <label>Google Sheets URL:</label>
+  <input type="text" id="surl" value="https://docs.google.com/spreadsheets/d/e/2PACX-1vTh2dnp3672kD-hOW8pS31Qz1kAUvh-ewVIrNWfeXXCALyYepDeUOItDbBxECzd1H-wfaLQaqi3tt6W/pub?gid=311531105&single=true&output=csv" style="width:500px;">
+  <button class="btn p" onclick="loadSheets()">⟳ עדכן מ-Sheets</button>
+  <button class="btn" onclick="loadDemo()">📊 טען דמו</button>
+  <span id="loadStatus" style="font-size:12px;display:none;"></span>
+</div>
+<div class="tabs">
+  <div class="tab active" onclick="sw('overview')">סקירה כללית</div>
+  <div class="tab" onclick="sw('emotions')">ניתוח רגשות</div>
+  <div class="tab" onclick="sw('log')">יומן עסקאות</div>
+  <div class="tab" onclick="sw('settings')">הגדרות</div>
+</div>
+
+<div class="page active" id="page-overview">
+  <div id="ov0" class="empty">⬆ טען נתונים דרך Sheets URL, קובץ CSV/JSON, או לחץ "טען דמו"</div>
+  <div id="ov1" style="display:none">
+    <div class="mgrid" id="metrics"></div>
+    <div class="cgrid"><div class="cc wide"><div class="ct">Cumulative Net P&L</div><div style="position:relative;height:160px"><canvas id="cumulChart"></canvas></div></div></div>
+    <div class="cgrid">
+      <div class="cc"><div class="ct">P&L by Strategy</div><div style="position:relative;height:210px"><canvas id="stratChart"></canvas></div></div>
+      <div class="cc"><div class="ct">P&L by Trade Type</div><div style="position:relative;height:210px"><canvas id="typeChart"></canvas></div></div>
+    </div>
+    <div class="cgrid">
+      <div class="cc"><div class="ct">Mistakes Breakdown</div><div style="position:relative;height:220px"><canvas id="mistakeChart"></canvas></div></div>
+      <div class="cc"><div class="ct">P&L by Symbol</div><div style="position:relative;height:220px"><canvas id="symChart"></canvas></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-emotions">
+  <div id="em0" class="empty">⬆ טען נתונים תחילה</div>
+  <div id="em1" style="display:none">
+    <div class="mgrid" id="emometrics"></div>
+    <div class="cgrid">
+      <div class="cc"><div class="ct">avg P&L — רגש כניסה</div><div style="position:relative;height:220px"><canvas id="entryAvg"></canvas></div></div>
+      <div class="cc"><div class="ct">Win Rate — רגש כניסה</div><div style="position:relative;height:220px"><canvas id="entryWR"></canvas></div></div>
+    </div>
+    <div class="cgrid">
+      <div class="cc"><div class="ct">avg P&L — רגש יציאה</div><div style="position:relative;height:220px"><canvas id="exitAvg"></canvas></div></div>
+      <div class="cc"><div class="ct">עלות רגשות שליליים (סה"כ P&L)</div><div style="position:relative;height:220px"><canvas id="negEmo"></canvas></div></div>
+    </div>
+    <div class="hmwrap">
+      <div class="hmtitle">
+        מפת חום — רגש כניסה × סוג עסקה (ממוצע P&L)
+        <div class="hmleg">
+          <span><span class="hmsw" style="background:rgba(46,204,113,.75)"></span>רווח</span>
+          <span><span class="hmsw" style="background:rgba(231,76,60,.75)"></span>הפסד</span>
+          <span><span class="hmsw" style="background:#1a1e26;border:1px solid rgba(255,255,255,.08)"></span>אין נתון</span>
+        </div>
+      </div>
+      <div id="heatmap"></div>
+    </div>
+    <div class="stt">תובנות אוטומטיות</div>
+    <div class="igrid" id="insights"></div>
+  </div>
+</div>
+
+<div class="page" id="page-log">
+  <div id="lg0" class="empty">⬆ טען נתונים תחילה</div>
+  <div id="lg1" style="display:none">
+    <div class="efilt" id="efilt"></div>
+    <div class="ttbl">
+      <div class="thd"><span>עסקה</span><span>רגש כניסה</span><span>רגש יציאה</span><span>ימים</span><span>Net P&L</span><span>%</span></div>
+      <div class="tbdy" id="tlog"></div>
+    </div>
+  </div>
+</div>
+
+<div class="page" id="page-settings">
+  <div class="sbox">
+    <div class="stt">מיפוי עמודות CSV / Google Sheets</div>
+    <p style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.7">הגדר את שמות העמודות המדויקים כפי שמופיעים בגיליון. לאחר שינוי לחץ "שמור".</p>
+    <div class="cgr" id="colset"></div>
+    <div style="display:flex;gap:8px;margin-bottom:20px">
+      <button class="btn p" onclick="saveCols()">שמור</button>
+      <button class="btn" onclick="resetCols()">אפס</button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div class="stt">הוראות Google Sheets</div>
+      <ol class="steps">
+        <li>פתח Google Sheets ← <b style="color:var(--text)">קובץ ← שתף ← פרסם לאינטרנט</b></li>
+        <li>בחר את הגיליון + פורמט <b style="color:var(--text)">CSV</b> ← פרסם</li>
+        <li>העתק את ה-URL שנוצר והדבק בשדה למעלה</li>
+        <li>לחץ <b style="color:var(--green)">עדכן מ-Sheets</b> לרענון</li>
+      </ol>
+      <div class="hint">https://docs.google.com/spreadsheets/d/<span style="color:var(--amber)">SHEET_ID</span>/pub?output=csv</div>
+    </div>
+  </div>
+</div>
+
+<script>
+var DEFS={name:{l:'שם מלא',d:'Full name'},symbol:{l:'סימבול',d:'Symbol'},type:{l:'סוג עסקה',d:'trade type'},strategy:{l:'אסטרטגיה',d:'strategy'},pnl:{l:'Net P&L',d:'Net P&L'},pct:{l:'Net P&L (%)',d:'Net P&L (%)'},days:{l:'ימים',d:'Days in Trade'},mistakes:{l:'טעויות',d:'Mistakes'},emotion_entry:{l:'רגש כניסה',d:'Emotion (Entry)'},emotion_exit:{l:'רגש יציאה',d:'Emotion (Exite)'}};
+var COL={};Object.entries(DEFS).forEach(function(e){COL[e[0]]=e[1].d;});
+var trades=[],emoF=null,CX={};
+var G='#2ecc71',R='#e74c3c',B='#3498db',AM='#f39c12',GC='rgba(255,255,255,.04)',TC='#5a6070';
+
+function buildColUI(){document.getElementById('colset').innerHTML=Object.entries(DEFS).map(function(e){return'<div><label>'+e[1].l+'</label><input id="col-'+e[0]+'" value="'+COL[e[0]]+'"></div>';}).join('');}
+function saveCols(){Object.keys(DEFS).forEach(function(k){var el=document.getElementById('col-'+k);if(el)COL[k]=el.value.trim();});if(trades.length)renderAll();alert('נשמר!');}
+function resetCols(){Object.entries(DEFS).forEach(function(e){COL[e[0]]=e[1].d;});buildColUI();}
+
+function pm(s){
+  var str=String(s||'').trim();
+  var neg=str.charAt(0)==='('&&str.charAt(str.length-1)===')';
+  var n=parseFloat(str.replace(/[$,%\s()]/g,'').replace(/[^0-9.\-]/g,''))||0;
+  return neg?-Math.abs(n):n;
+}
+function avg(a){return a.length?a.reduce(function(s,v){return s+v;},0)/a.length:0;}
+function semo(s){return(s||'').split(',').map(function(x){return x.trim();}).filter(function(x){return x&&x!=='—'&&x.toLowerCase()!=='no emotion';});}
+function bc(v){return v>=0?G:R;}
+function dc(id){if(CX[id]){CX[id].destroy();delete CX[id];}}
+
+function parseCSV(txt){
+  var lines=txt.trim().split(/\r?\n/);
+  function splitRow(line){
+    var r=[],cur='',inQ=false;
+    for(var i=0;i<line.length;i++){
+      var c=line[i];
+      if(c==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(c===','&&!inQ){r.push(cur.trim());cur='';}
+      else cur+=c;
+    }
+    r.push(cur.trim());
+    return r;
+  }
+  var hdr=splitRow(lines[0]).map(function(h){return h.replace(/^"|"$/g,'').trim();});
+  var rows=[];
+  for(var i=1;i<lines.length;i++){
+    var vals=splitRow(lines[i]);
+    if(vals.every(function(v){return!v;}))continue;
+    var obj={};hdr.forEach(function(h,k){obj[h]=(vals[k]||'').replace(/^"|"$/g,'').trim();});
+    rows.push(obj);
+  }
+  return rows;
+}
+
+function rtt(row){
+  var g=function(k){return(row[COL[k]]||'').trim();};
+  if(!g('name')&&!g('symbol'))return null;
+  var pnlVal=pm(g('pnl'));
+  if(isNaN(pnlVal))return null;
+  return{
+    name:g('name')||g('symbol'),
+    symbol:g('symbol'),
+    type:g('type')||'—',
+    strategy:g('strategy')||'—',
+    pnl:pnlVal,
+    pct:pm(g('pct')),
+    days:parseInt(g('days'))||0,
+    mistakes:g('mistakes')||'—',
+    entry:g('emotion_entry')||'—',
+    exit:g('emotion_exit')||'—'
+  };
+}
+
+function showStatus(msg,isErr){
+  var el=document.getElementById('loadStatus');
+  if(!el)return;
+  el.textContent=msg;
+  el.style.color=isErr?'#e74c3c':'#2ecc71';
+  el.style.display=msg?'inline':'none';
+}
+
+function ingest(rows,src){
+  var parsed=rows.map(rtt).filter(Boolean);
+  if(!parsed.length){showStatus('לא נמצאו עסקאות — בדוק שמות עמודות',true);return;}
+  trades=parsed;
+  document.getElementById('badge').textContent='— '+new Date().toLocaleString('he-IL')+' · '+trades.length+' עסקאות · '+src;
+  showStatus('');
+  renderAll();
+}
+
+function loadSheets(){
+  var url=document.getElementById('surl').value.trim();
+  if(!url){showStatus('הכנס URL',true);return;}
+  showStatus('טוען...',false);
+  var btn=document.querySelector('.btn.p');
+  if(btn)btn.disabled=true;
+  var proxies=[
+    url,
+    'https://corsproxy.io/?'+encodeURIComponent(url),
+    'https://api.allorigins.win/raw?url='+encodeURIComponent(url)
+  ];
+  var idx=0;
+  function tryNext(){
+    if(idx>=proxies.length){
+      showStatus('שגיאת CORS — פתח את הקובץ דרך דפדפן במקום לפתוח מקומי',true);
+      if(btn)btn.disabled=false;return;
+    }
+    fetch(proxies[idx++])
+      .then(function(r){if(!r.ok)throw new Error(r.status);return r.text();})
+      .then(function(t){
+        var rows=parseCSV(t);
+        if(!rows.length)throw new Error('empty');
+        ingest(rows,'Google Sheets');
+        if(btn)btn.disabled=false;
+      })
+      .catch(function(){tryNext();});
+  }
+  tryNext();
+}
+
+function loadFile(evt){
+  var f=evt.target.files[0];if(!f)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var txt=e.target.result;
+    if(f.name.endsWith('.json')){try{var d=JSON.parse(txt);var arr=Array.isArray(d)?d:d.trades||[];ingest(arr.map(function(r){return r.pnl!==undefined?r:rtt(r);}).filter(Boolean),f.name);}catch(ex){showStatus('שגיאת JSON: '+ex.message,true);}}
+    else{ingest(parseCSV(txt),f.name);}
+  };
+  reader.readAsText(f);
+}
+function exportJSON(){var b=new Blob([JSON.stringify(trades,null,2)],{type:'application/json'});var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='trading_journal.json';a.click();}
+
+function loadDemo(){
+  trades=[
+    {name:"LEN JAN 09'26 Buy Call",symbol:"LEN",type:"Buy Call",strategy:"Technical Setup",pnl:140,pct:96.55,days:3,mistakes:"Cut Winner Too Early",entry:"Confidence",exit:"Acceptance"},
+    {name:"MCD FEB 20'26 Bull Call",symbol:"MCD",type:"Bull Call",strategy:"Technical Setup",pnl:267,pct:47.59,days:20,mistakes:"Cut Winner Too Early",entry:"Confidence,FOMO",exit:"Greed,Acceptance,Fear"},
+    {name:"BMNR JAN 16'26 Sell Put",symbol:"BMNR",type:"Sell Put",strategy:"Portfolio Income",pnl:54,pct:84.38,days:7,mistakes:"No Mistake",entry:"Confidence",exit:"Discipline,Acceptance"},
+    {name:"SOFI FEB 06'26 Buy Put #1",symbol:"SOFI",type:"Buy Put",strategy:"Hedge",pnl:-3,pct:-0.61,days:0,mistakes:"Execution Error",entry:"Fear,Stress",exit:"Patience"},
+    {name:"SOFI FEB 06'26 Buy Put #2",symbol:"SOFI",type:"Buy Put",strategy:"Hedge",pnl:-24,pct:-4.91,days:7,mistakes:"No Mistake",entry:"Fear,Stress",exit:"Acceptance,Discipline"},
+    {name:"SOFI MAR 20'26 Sell Put",symbol:"SOFI",type:"Sell Put",strategy:"Directional",pnl:185,pct:73.12,days:166,mistakes:"No Mistake",entry:"Confidence,Patience",exit:"Stress"},
+    {name:"ASTS JAN 16'26 Bear Put",symbol:"ASTS",type:"Bear Put",strategy:"Speculative",pnl:-130,pct:-106.56,days:1,mistakes:"Misread Trend",entry:"Fear,Stress",exit:"Acceptance"},
+    {name:"IBRX JAN 16'26 Buy Call",symbol:"IBRX",type:"Buy Call",strategy:"Short Squeeze",pnl:342,pct:814.29,days:1,mistakes:"Cut Winner Too Early",entry:"Curiosity,Confidence",exit:"Acceptance"},
+    {name:"QQQ JAN 16'26 Sell Call",symbol:"QQQ",type:"Sell Call",strategy:"Portfolio Income",pnl:204,pct:98.08,days:1,mistakes:"Impulse Entry (FOMO)",entry:"Overconfidence,Acceptance",exit:"Confidence"},
+    {name:"ASTS JAN 23'26 Bear Put",symbol:"ASTS",type:"Bear Put",strategy:"Hedge",pnl:13,pct:9.15,days:0,mistakes:"No Valid Setup",entry:"Overconfidence,Fear,FOMO",exit:"Discipline,Stress"},
+    {name:"QQQ JAN 21'26 Bear Put",symbol:"QQQ",type:"Bear Put",strategy:"Hedge",pnl:-132,pct:-106.45,days:0,mistakes:"Impulse Entry (FOMO)",entry:"FOMO,Overconfidence,Impulsive",exit:"Acceptance"},
+    {name:"APLD JAN 23'26 Buy Put",symbol:"APLD",type:"Buy Put",strategy:"Speculative",pnl:25,pct:86.21,days:1,mistakes:"No Mistake",entry:"Overconfidence,Curiosity",exit:"Discipline,Acceptance"},
+    {name:"SLV MAR 20'26 Sell Call",symbol:"SLV",type:"Sell Call",strategy:"Speculative",pnl:120,pct:9.14,days:1,mistakes:"Oversized Position",entry:"Overconfidence,Curiosity",exit:"Fear,Acceptance"},
+    {name:"COIN JAN 30'26 Bull Call",symbol:"COIN",type:"Bull Call",strategy:"Technical Setup",pnl:-214,pct:-103.88,days:3,mistakes:"Early Entry",entry:"Greed,Curiosity",exit:"Acceptance"},
+    {name:"SLV AUG 21'26 Bull Call",symbol:"SLV",type:"Bull Call",strategy:"No Strategy",pnl:-20,pct:-0.33,days:0,mistakes:"Execution Error",entry:"—",exit:"—"},
+    {name:"SLV JAN 28'26 Bear Put",symbol:"SLV",type:"Bear Put",strategy:"Speculative",pnl:-74,pct:-112.12,days:0,mistakes:"No Valid Setup",entry:"FOMO,Overconfidence",exit:"Acceptance"},
+    {name:"SLV FEB 11'26 Sell Call",symbol:"SLV",type:"Sell Call",strategy:"Volatility Play",pnl:25,pct:92.59,days:14,mistakes:"No Mistake",entry:"Confidence",exit:"Patience"},
+    {name:"SLV FEB 27'26 Sell Call",symbol:"SLV",type:"Sell Call",strategy:"Volatility Play",pnl:174,pct:98.86,days:30,mistakes:"No Mistake",entry:"Confidence",exit:"Confidence"},
+    {name:"SOFI FEB 13'26 Buy Call",symbol:"SOFI",type:"Buy Call",strategy:"Earnings Play",pnl:-300,pct:-101.35,days:16,mistakes:"Early Entry",entry:"Curiosity",exit:"Acceptance"},
+    {name:"NVO FEB 27'26 Buy Call",symbol:"NVO",type:"Buy Call",strategy:"Earnings Play",pnl:-171,pct:-85.93,days:1,mistakes:"External Event",entry:"Greed",exit:"Frustration,Acceptance"},
+    {name:"SOFI FEB 20'26 Buy Call",symbol:"SOFI",type:"Buy Call",strategy:"Speculative",pnl:72,pct:23.68,days:4,mistakes:"No Mistake",entry:"Greed,Curiosity,Fear",exit:"Acceptance,Fear,Patience"},
+    {name:"QQQ FEB 06'26 Buy Put",symbol:"QQQ",type:"Buy Put",strategy:"No Strategy",pnl:39,pct:150,days:0,mistakes:"Execution Error",entry:"—",exit:"—"},
+    {name:"QQQ FEB 09'26 Buy Put",symbol:"QQQ",type:"Buy Put",strategy:"Hedge",pnl:26,pct:9.81,days:3,mistakes:"No Mistake",entry:"Fear",exit:"Patience"},
+    {name:"QQQ FEB 10'26 Buy Put",symbol:"QQQ",type:"Buy Put",strategy:"Hedge",pnl:13,pct:6.37,days:1,mistakes:"No Mistake",entry:"Fear,Acceptance",exit:"Patience"},
+    {name:"CAT FEB 13'26 Sell Call",symbol:"CAT",type:"Sell Call",strategy:"Volatility Play",pnl:188,pct:98.95,days:2,mistakes:"No Mistake",entry:"Patience,Confidence",exit:"Confidence"},
+    {name:"VRT FEB 20'26 Sell Call",symbol:"VRT",type:"Sell Call",strategy:"Volatility Play",pnl:214,pct:80.45,days:7,mistakes:"No Mistake",entry:"Patience,Confidence",exit:"Patience,Acceptance"},
+    {name:"AMZN FEB 20'26 Bull Call",symbol:"AMZN",type:"Bull Call",strategy:"Technical Setup",pnl:199,pct:135.37,days:1,mistakes:"Cut Winner Too Early",entry:"Impulsive",exit:"Acceptance"},
+    {name:"VIX FEB 24'26 Buy Call",symbol:"VIX",type:"Buy Call",strategy:"Speculative",pnl:52,pct:65.82,days:1,mistakes:"No Mistake",entry:"Curiosity",exit:"Acceptance"},
+    {name:"USO FEB 25'26 Buy Call",symbol:"USO",type:"Buy Call",strategy:"Speculative",pnl:72,pct:41.62,days:1,mistakes:"No Mistake",entry:"Curiosity",exit:"Acceptance"},
+    {name:"ASTS MAR 06'26 Buy Put",symbol:"ASTS",type:"Buy Put",strategy:"Hedge",pnl:-507,pct:-100.4,days:8,mistakes:"No Mistake",entry:"Confidence,Fear",exit:"Acceptance"},
+    {name:"ACHC MAR 20'26 Sell Call",symbol:"ACHC",type:"Sell Call",strategy:"Portfolio Income",pnl:173,pct:81.6,days:16,mistakes:"No Mistake",entry:"Boredom,Confidence",exit:"Discipline,Patience"},
+    {name:"ONDS MAR 20'26 Bull Call",symbol:"ONDS",type:"Bull Call",strategy:"Speculative",pnl:-77,pct:-105.48,days:16,mistakes:"Early Entry",entry:"Acceptance",exit:"Acceptance"},
+    {name:"QQQ MAR 25'26 Sell Call",symbol:"QQQ",type:"Sell Call",strategy:"Speculative",pnl:66,pct:97.06,days:0,mistakes:"No Valid Setup",entry:"Boredom",exit:"Discipline"}
+  ];
+  document.getElementById('badge').textContent='— נתוני דמו · '+trades.length+' עסקאות';
+  renderAll();
+}
+
+function renderAll(){
+  ['ov0','em0','lg0'].forEach(function(id){document.getElementById(id).style.display='none';});
+  ['ov1','em1','lg1'].forEach(function(id){document.getElementById(id).style.display='block';});
+  renderOV();renderEM();renderLog();
+}
+
+function renderOV(){
+  var total=trades.reduce(function(s,t){return s+t.pnl;},0);
+  var wins=trades.filter(function(t){return t.pnl>0;}),losses=trades.filter(function(t){return t.pnl<=0;});
+  var wr=trades.length?(wins.length/trades.length*100):0;
+  var aW=wins.length?Math.round(avg(wins.map(function(t){return t.pnl;}))):0;
+  var aL=losses.length?Math.round(avg(losses.map(function(t){return t.pnl;}))):0;
+  var best=trades.length?Math.max.apply(null,trades.map(function(t){return t.pnl;})):0;
+  var worst=trades.length?Math.min.apply(null,trades.map(function(t){return t.pnl;})):0;
+  document.getElementById('metrics').innerHTML=[
+    {l:'net P&L',v:(total>=0?'+':'')+'$'+Math.round(total),c:total>=0?'pos':'neg'},
+    {l:'win rate',v:wr.toFixed(1)+'%',c:''},
+    {l:'avg win / loss',v:'$'+aW+' / $'+aL,c:''},
+    {l:'best / worst',v:'$'+best+' / $'+worst,c:''}
+  ].map(function(m){return'<div class="mc"><div class="ml">'+m.l+'</div><div class="mv '+m.c+'">'+m.v+'</div></div>';}).join('');
+
+  var cum=0,cL=[],cD=[];
+  trades.forEach(function(t,i){cum+=t.pnl;cL.push('#'+(i+1));cD.push(cum);});
+  dc('cum');CX.cum=new Chart(document.getElementById('cumulChart'),{type:'line',data:{labels:cL,datasets:[{data:cD,fill:true,borderColor:cum>=0?G:R,backgroundColor:cum>=0?'rgba(46,204,113,.07)':'rgba(231,76,60,.07)',borderWidth:2,pointRadius:2,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'$'+Math.round(c.raw);}}}},scales:{x:{ticks:{color:TC,font:{size:10},maxTicksLimit:12},grid:{color:GC}},y:{ticks:{color:TC,callback:function(v){return'$'+v;}},grid:{color:GC}}}}});
+
+  function hbar(id,mapFn){var m={};trades.forEach(function(t){var k=mapFn(t);m[k]=(m[k]||0)+t.pnl;});var s=Object.entries(m).sort(function(a,b){return b[1]-a[1];});dc(id);CX[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels:s.map(function(x){return x[0];}),datasets:[{data:s.map(function(x){return Math.round(x[1]);}),backgroundColor:s.map(function(x){return bc(x[1]);}),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'$'+c.raw;}}}},scales:{x:{ticks:{color:TC,callback:function(v){return'$'+v;}},grid:{color:GC}},y:{ticks:{color:'#8891a4',font:{size:10}}}}}});}
+  hbar('stratChart',function(t){return t.strategy;});hbar('typeChart',function(t){return t.type;});
+
+  var sym={};trades.forEach(function(t){sym[t.symbol]=(sym[t.symbol]||0)+t.pnl;});
+  var ss=Object.entries(sym).sort(function(a,b){return b[1]-a[1];});
+  dc('sym');CX.sym=new Chart(document.getElementById('symChart'),{type:'bar',data:{labels:ss.map(function(x){return x[0];}),datasets:[{data:ss.map(function(x){return Math.round(x[1]);}),backgroundColor:ss.map(function(x){return bc(x[1]);}),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'$'+c.raw;}}}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{ticks:{color:'#8891a4',callback:function(v){return'$'+v;}},grid:{color:GC}}}}});
+
+  var mk={};trades.forEach(function(t){mk[t.mistakes]=(mk[t.mistakes]||0)+1;});
+  var me=Object.entries(mk).sort(function(a,b){return b[1]-a[1];});
+  var mkC=[G,R,B,AM,'#9b59b6','#e67e22','#1abc9c','#d35400'];
+  dc('mk');CX.mk=new Chart(document.getElementById('mistakeChart'),{type:'doughnut',data:{labels:me.map(function(x){return x[0];}),datasets:[{data:me.map(function(x){return x[1];}),backgroundColor:mkC,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'right',labels:{color:'#8891a4',font:{size:10},boxWidth:10,padding:6}}}}});
+}
+
+function renderEM(){
+  var eM={},xM={};
+  trades.forEach(function(t){
+    semo(t.entry).forEach(function(e){if(!eM[e])eM[e]={pnls:[],wins:0};eM[e].pnls.push(t.pnl);if(t.pnl>0)eM[e].wins++;});
+    semo(t.exit).forEach(function(e){if(!xM[e])xM[e]={pnls:[],wins:0};xM[e].pnls.push(t.pnl);if(t.pnl>0)xM[e].wins++;});
+  });
+  var cT=trades.filter(function(t){return semo(t.entry).indexOf('Confidence')>=0;});
+  var cWR=cT.length?Math.round(cT.filter(function(t){return t.pnl>0;}).length/cT.length*100):0;
+  var fT=trades.filter(function(t){return semo(t.entry).indexOf('FOMO')>=0;});
+  var fA=fT.length?Math.round(avg(fT.map(function(t){return t.pnl;}))):0;
+  var pT=trades.filter(function(t){return semo(t.entry).indexOf('Patience')>=0;});
+  var pWR=pT.length?Math.round(pT.filter(function(t){return t.pnl>0;}).length/pT.length*100):0;
+  var dT=trades.filter(function(t){return semo(t.exit).indexOf('Discipline')>=0;});
+  var dWR=dT.length?Math.round(dT.filter(function(t){return t.pnl>0;}).length/dT.length*100):0;
+  document.getElementById('emometrics').innerHTML=[
+    {l:'Confidence WR',v:cWR+'%',c:''},
+    {l:'FOMO avg P&L',v:(fA>=0?'+':'')+'$'+fA,c:fA<0?'neg':'pos'},
+    {l:'Patience WR',v:pWR+'%',c:''},
+    {l:'Discipline exit WR',v:dWR+'%',c:''}
+  ].map(function(m){return'<div class="mc"><div class="ml">'+m.l+'</div><div class="mv '+m.c+'">'+m.v+'</div></div>';}).join('');
+
+  function eavg(id,map){
+    var ent=Object.entries(map).filter(function(e){return e[1].pnls.length>=2;}).sort(function(a,b){return avg(b[1].pnls)-avg(a[1].pnls);});
+    var avgs=ent.map(function(e){return Math.round(avg(e[1].pnls));});
+    dc(id);CX[id]=new Chart(document.getElementById(id),{type:'bar',data:{labels:ent.map(function(e){return e[0];}),datasets:[{data:avgs,backgroundColor:avgs.map(bc),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'avg $'+c.raw;}}}},scales:{x:{ticks:{color:TC,callback:function(v){return'$'+v;}},grid:{color:GC}},y:{ticks:{color:'#8891a4',font:{size:10}}}}}});
+  }
+  eavg('entryAvg',eM);eavg('exitAvg',xM);
+
+  var wE=Object.entries(eM).filter(function(e){return e[1].pnls.length>=2;}).sort(function(a,b){return(b[1].wins/b[1].pnls.length)-(a[1].wins/a[1].pnls.length);});
+  var wrs=wE.map(function(e){return Math.round(e[1].wins/e[1].pnls.length*100);});
+  dc('ewr');CX.ewr=new Chart(document.getElementById('entryWR'),{type:'bar',data:{labels:wE.map(function(e){return e[0]+' ('+e[1].pnls.length+')';}),datasets:[{data:wrs,backgroundColor:wrs.map(function(v){return v>=60?G:v>=40?AM:R;}),borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.raw+'%';}}}},scales:{x:{min:0,max:100,ticks:{color:TC,callback:function(v){return v+'%';}},grid:{color:GC}},y:{ticks:{color:'#8891a4',font:{size:10}}}}}});
+
+  var NEG=['FOMO','Greed','Stress','Overconfidence','Fear','Impulsive','Boredom'];
+  var nD=NEG.map(function(e){var v=eM[e];return v?Math.round(v.pnls.reduce(function(a,b){return a+b;},0)):0;});
+  var nC=NEG.map(function(e){var v=eM[e];return v?v.pnls.length:0;});
+  dc('neg');CX.neg=new Chart(document.getElementById('negEmo'),{type:'bar',data:{labels:NEG,datasets:[{data:nD,backgroundColor:nD.map(bc),borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'$'+c.raw;},afterLabel:function(c){return'n='+nC[c.dataIndex];}}}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{ticks:{color:'#8891a4',callback:function(v){return'$'+v;}},grid:{color:GC}}}}});
+
+  buildHM(eM);buildIns(eM,xM);
+}
+
+function buildHM(eM){
+  var EMO=['Confidence','Patience','Curiosity','Boredom','Acceptance','Greed','Fear','Overconfidence','FOMO','Stress','Impulsive'];
+  var TYP=['Sell Call','Sell Put','Buy Call','Bull Call','Bear Put','Buy Put'];
+  var mat={};
+  EMO.forEach(function(e){mat[e]={};TYP.forEach(function(t){mat[e][t]={sum:0,n:0};});});
+  trades.forEach(function(tr){semo(tr.entry).forEach(function(e){if(mat[e]&&mat[e][tr.type]!==undefined){mat[e][tr.type].sum+=tr.pnl;mat[e][tr.type].n++;}});});
+  function cbg(s,n){if(!n)return null;var v=s/n,i=Math.min(Math.abs(v)/250,1),a=(0.15+i*0.65).toFixed(2);return v>=0?'rgba(46,204,113,'+a+')':'rgba(231,76,60,'+a+')';}
+  function ctc(s,n){if(!n)return null;var v=s/n,i=Math.min(Math.abs(v)/250,1);return v>=0?(i>0.5?'#0a3320':'#1a7a45'):(i>0.5?'#4a0a0a':'#aa2222');}
+  var h='<table class="hm"><thead><tr><th class="rl"></th>';
+  TYP.forEach(function(t){h+='<th>'+t+'</th>';});h+='</tr></thead><tbody>';
+  EMO.forEach(function(e){
+    h+='<tr><td class="rl">'+e+'</td>';
+    TYP.forEach(function(t){
+      var c=mat[e][t];
+      if(!c.n){h+='<td class="cell emp"></td>';return;}
+      var bg=cbg(c.sum,c.n),tc=ctc(c.sum,c.n),a=Math.round(c.sum/c.n);
+      h+='<td class="cell" style="background:'+bg+'"><div class="ca" style="color:'+tc+'">'+(a>=0?'+':'')+'$'+a+'</div><div class="cn" style="color:'+tc+'">n='+c.n+'</div></td>';
+    });
+    h+='</tr>';
+  });
+  document.getElementById('heatmap').innerHTML=h+'</tbody></table>';
+}
+
+function buildIns(eM,xM){
+  var cT=trades.filter(function(t){return semo(t.entry).indexOf('Confidence')>=0;});
+  var cWR=cT.length?Math.round(cT.filter(function(t){return t.pnl>0;}).length/cT.length*100):0;
+  var fT=trades.filter(function(t){return semo(t.entry).some(function(e){return['FOMO','Overconfidence','Impulsive'].indexOf(e)>=0;});});
+  var fTot=Math.round(fT.reduce(function(a,t){return a+t.pnl;},0));
+  var gT=trades.filter(function(t){return semo(t.entry).indexOf('Greed')>=0;});
+  var gWR=gT.length?Math.round(gT.filter(function(t){return t.pnl>0;}).length/gT.length*100):0;
+  var pT=trades.filter(function(t){return semo(t.entry).indexOf('Patience')>=0;});
+  var pA=pT.length?Math.round(avg(pT.map(function(t){return t.pnl;}))):0;
+  var dT=trades.filter(function(t){return semo(t.exit).indexOf('Discipline')>=0;});
+  var dWR=dT.length?Math.round(dT.filter(function(t){return t.pnl>0;}).length/dT.length*100):0;
+  var nM=trades.filter(function(t){return t.mistakes==='No Mistake';});
+  var nWR=nM.length?Math.round(nM.filter(function(t){return t.pnl>0;}).length/nM.length*100):0;
+  document.getElementById('insights').innerHTML=[
+    {c:'pos',i:'↑',t:'Confidence בכניסה: win rate '+cWR+'% — הרגש הטוב ביותר שלך'},
+    {c:'pos',i:'↑',t:'Patience בכניסה: avg $'+pA+' — תמיד להמתין לסטאפ'},
+    {c:fTot<0?'neg':'pos',i:fTot<0?'↓':'→',t:'FOMO+Overconfidence+Impulsive: סה"כ '+(fTot<0?'':'+')+'$'+fTot+' — שקול לדלג'},
+    {c:'neg',i:'↓',t:'Greed בכניסה: win rate '+gWR+'% — קורלציה עם כניסה מוקדמת'},
+    {c:'pos',i:'↑',t:'Discipline ביציאה: '+dWR+'% win rate — תוכנית יציאה = תוצאה טובה יותר'},
+    {c:'neu',i:'→',t:'ללא טעויות: '+nWR+'% win rate — ניהול רגשות משפיע ישירות'}
+  ].map(function(x){return'<div class="ins '+x.c+'"><span style="font-weight:500">'+x.i+'</span><span>'+x.t+'</span></div>';}).join('');
+}
+
+var BAD=['FOMO','Greed','Stress','Overconfidence','Impulsive'],GOOD=['Confidence','Patience','Discipline'];
+function etag(e){var c=BAD.indexOf(e)>=0?'bd':GOOD.indexOf(e)>=0?'gd':'nu';return'<span class="et '+c+'">'+e+'</span>';}
+
+function renderLog(){
+  var all=[...new Set(trades.reduce(function(a,t){return a.concat(semo(t.entry));},[])) ].sort();
+  document.getElementById('efilt').innerHTML='<button class="eb active" onclick="doF(null,this)">הכל</button>'+all.map(function(e){return'<button class="eb" onclick="doF(\''+e+'\',this)">'+e+'</button>';}).join('');
+  renderLogT();
+}
+function doF(e,btn){emoF=e;document.querySelectorAll('.eb').forEach(function(b){b.classList.remove('active');});if(btn)btn.classList.add('active');renderLogT();}
+function renderLogT(){
+  var rows=emoF?trades.filter(function(t){return semo(t.entry).indexOf(emoF)>=0;}):trades;
+  document.getElementById('tlog').innerHTML=rows.map(function(t){
+    var p=t.pnl>=0;
+    return'<div class="trow"><div><div class="tn">'+t.name+'</div><div class="ts">'+t.strategy+' · '+t.mistakes+'</div></div><div>'+semo(t.entry).map(etag).join('')+'</div><div>'+semo(t.exit).map(etag).join('')+'</div><div style="text-align:right;color:var(--text3)">'+t.days+'d</div><div style="text-align:right" class="'+(p?'pp':'np')+'">'+(p?'+':'')+'$'+t.pnl+'</div><div style="text-align:right" class="'+(p?'pp':'np')+'">'+t.pct.toFixed(1)+'%</div></div>';
+  }).join('');
+}
+
+function sw(n){document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['overview','emotions','log','settings'][i]===n);});document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});document.getElementById('page-'+n).classList.add('active');}
+
+buildColUI();
+loadSheets();
+</script>
+</body>
+</html>
