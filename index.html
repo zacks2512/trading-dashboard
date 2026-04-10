@@ -337,7 +337,17 @@ function bc(v){return v>=0?G:R;}
 function dc(id){if(CX[id]){CX[id].destroy();delete CX[id];}}
 function parseDate(s){if(!s)return null;var p=s.split('/');if(p.length===3)return new Date(+p[2],+p[1]-1,+p[0]);return null;}
 function fmtMonth(d){if(!d)return'?';return d.getFullYear()+'-'+(d.getMonth()+1<10?'0':'')+(d.getMonth()+1);}
-function fmtWeek(d){if(!d)return'?';var s=new Date(d);s.setDate(s.getDate()-s.getDay());return s.toLocaleDateString('he-IL',{day:'2-digit',month:'2-digit'});}
+function weekStart(d){var s=new Date(d);s.setDate(s.getDate()-s.getDay());return s;}
+function fmtWeek(d){if(!d)return'?';
+  var s=weekStart(d);
+  var y=s.getFullYear(),mo=s.getMonth()+1,da=s.getDate();
+  return y+'-'+(mo<10?'0':'')+mo+'-'+(da<10?'0':'')+da;
+}
+function weekLabel(key){
+  if(!key||key==='?')return key;
+  var p=key.split('-');if(p.length!==3)return key;
+  return (p[2])+'.'+p[1];
+}
 
 /* ── CSV / Fetch ────────────────────────────────────────────────────── */
 function parseCSV(txt){
@@ -596,26 +606,31 @@ function renderPerf(){
   var keys=Object.keys(m).sort();
   if(!keys.length)return;
 
+  // For weekly, display DD.MM but sort by the YYYY-MM-DD key
+  var isWeekly=perfPeriod==='weekly';
+  function dispKey(k){return isWeekly?weekLabel(k):k;}
+
   // Populate period selectors
   var cmpA=document.getElementById('cmp-a');
   var cmpB=document.getElementById('cmp-b');
   var prevA=cmpA.value,prevB=cmpB.value;
-  cmpA.innerHTML=keys.map(function(k){return'<option>'+k+'</option>';}).join('');
-  cmpB.innerHTML=keys.map(function(k){return'<option>'+k+'</option>';}).join('');
+  cmpA.innerHTML=keys.map(function(k){return'<option value="'+k+'">'+dispKey(k)+'</option>';}).join('');
+  cmpB.innerHTML=keys.map(function(k){return'<option value="'+k+'">'+dispKey(k)+'</option>';}).join('');
   if(keys.length>=2){
     cmpA.value=prevA&&m[prevA]?prevA:keys[keys.length-2];
     cmpB.value=prevB&&m[prevB]?prevB:keys[keys.length-1];
   }
 
+  var labels=keys.map(dispKey);
   var pnls=keys.map(function(k){return Math.round(m[k].pnl);});
   var wrs=keys.map(function(k){return m[k].total?Math.round(m[k].wins/m[k].total*100):0;});
   var counts=keys.map(function(k){return m[k].total;});
 
-  dc('perfPnl');CX.perfPnl=new Chart(document.getElementById('perfPnl'),{type:'bar',data:{labels:keys,datasets:[{data:pnls,backgroundColor:pnls.map(bc),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'$'+c.raw;}}}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{ticks:{color:TC,callback:function(v){return'$'+v;}},grid:{color:GC}}}}});
+  dc('perfPnl');CX.perfPnl=new Chart(document.getElementById('perfPnl'),{type:'bar',data:{labels:labels,datasets:[{data:pnls,backgroundColor:pnls.map(bc),borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return'$'+c.raw;}}}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{ticks:{color:TC,callback:function(v){return'$'+v;}},grid:{color:GC}}}}});
 
-  dc('perfWR');CX.perfWR=new Chart(document.getElementById('perfWR'),{type:'line',data:{labels:keys,datasets:[{data:wrs,borderColor:B,backgroundColor:'rgba(52,152,219,.08)',fill:true,borderWidth:2,pointRadius:4,pointBackgroundColor:B,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.raw+'%';}}}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{min:0,max:100,ticks:{color:TC,callback:function(v){return v+'%';}},grid:{color:GC}}}}});
+  dc('perfWR');CX.perfWR=new Chart(document.getElementById('perfWR'),{type:'line',data:{labels:labels,datasets:[{data:wrs,borderColor:B,backgroundColor:'rgba(52,152,219,.08)',fill:true,borderWidth:2,pointRadius:4,pointBackgroundColor:B,tension:.3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return c.raw+'%';}}}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{min:0,max:100,ticks:{color:TC,callback:function(v){return v+'%';}},grid:{color:GC}}}}});
 
-  dc('perfCount');CX.perfCount=new Chart(document.getElementById('perfCount'),{type:'bar',data:{labels:keys,datasets:[{data:counts,backgroundColor:'rgba(52,152,219,.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{ticks:{color:TC},grid:{color:GC}}}}});
+  dc('perfCount');CX.perfCount=new Chart(document.getElementById('perfCount'),{type:'bar',data:{labels:labels,datasets:[{data:counts,backgroundColor:'rgba(52,152,219,.6)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:TC,font:{size:10}}},y:{ticks:{color:TC},grid:{color:GC}}}}});
 
   // Scatter: time efficiency vs P&L
   var scData=trades.filter(function(t){return t.timeEff!==null;}).map(function(t){return{x:t.timeEff,y:t.pnl,label:t.symbol};});
@@ -635,14 +650,15 @@ function renderPerf(){
     document.getElementById('perfScatter').parentElement.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--text3);font-size:12px;">נדרשים תאריכי כניסה, יציאה ופקיעה לחישוב</div>';
   }
 
-  renderComparison(m,keys);
+  renderComparison(m,keys,dispKey);
 }
 
-function renderComparison(m,keys){
+function renderComparison(m,keys,dispKey){
   var cmpA=document.getElementById('cmp-a').value;
   var cmpB=document.getElementById('cmp-b').value;
   if(!cmpA||!cmpB||!m[cmpA]||!m[cmpB])return;
   var a=m[cmpA],b=m[cmpB];
+  if(!dispKey)dispKey=function(k){return k;};
   var aWR=a.total?Math.round(a.wins/a.total*100):0;
   var bWR=b.total?Math.round(b.wins/b.total*100):0;
   function delta(bv,av,pref){
@@ -657,13 +673,13 @@ function renderComparison(m,keys){
     {l:'Avg P&L לעסקה',a:'$'+Math.round(a.pnl/a.total),b:'$'+Math.round(b.pnl/b.total),d:delta(b.pnl/b.total,a.pnl/a.total,'$')}
   ];
   document.getElementById('compCards').innerHTML=
-    '<div class="comp-card"><div class="comp-title">'+cmpA+'</div>'+
+    '<div class="comp-card"><div class="comp-title">'+dispKey(cmpA)+'</div>'+
     rows.map(function(r){return'<div class="period-row"><span style="color:var(--text3)">'+r.l+'</span><span style="font-family:var(--m)">'+r.a+'</span></div>';}).join('')+'</div>'+
-    '<div class="comp-card"><div class="comp-title">'+cmpB+' <span style="margin-right:8px" id="deltaLabel"></span></div>'+
+    '<div class="comp-card"><div class="comp-title">'+dispKey(cmpB)+' <span style="margin-right:8px" id="deltaLabel"></span></div>'+
     rows.map(function(r){return'<div class="period-row"><span style="color:var(--text3)">'+r.l+'</span><div style="display:flex;align-items:center;gap:8px;font-family:var(--m)">'+r.b+' '+r.d+'</div></div>';}).join('')+'</div>';
 }
 
-document.addEventListener('change',function(e){if(e.target.id==='cmp-a'||e.target.id==='cmp-b'){var fn=perfPeriod==='monthly'?fmtMonth:fmtWeek;var m=groupByPeriod(fn);var keys=Object.keys(m).sort();renderComparison(m,keys);}});
+document.addEventListener('change',function(e){if(e.target.id==='cmp-a'||e.target.id==='cmp-b'){var fn=perfPeriod==='monthly'?fmtMonth:fmtWeek;var m=groupByPeriod(fn);var keys=Object.keys(m).sort();var isW=perfPeriod==='weekly';var dK=function(k){return isW?weekLabel(k):k;};renderComparison(m,keys,dK);}});
 
 /* ── Goals ──────────────────────────────────────────────────────────── */
 function renderGoals(){
